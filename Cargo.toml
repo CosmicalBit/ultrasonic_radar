@@ -1,0 +1,40 @@
+[package]
+edition      = "2024"
+name         = "ultrasonic-radar"
+rust-version = "1.88"
+version      = "0.1.0"
+
+[[bin]]
+name = "ultrasonic-radar"
+path = "./src/bin/main.rs"
+
+[[bin]]
+name = "dht-debug"
+path = "./src/bin/dht_debug.rs"
+
+[dependencies]
+esp-hal = { version = "~1.1.0", features = ["esp32s3", "unstable"] }
+
+
+esp-bootloader-esp-idf = { version = "0.5.0", features = ["esp32s3"] }
+
+critical-section = "1.2.0"
+esp-alloc        = "0.10.0"
+esp32-dht11-rs = { version = "0.1.4", default-features = false, features = ["esp32s3"] }
+esp-println = { version = "0.17.0", features = ["esp32s3"] }
+
+[patch.crates-io]
+esp32-dht11-rs = { path = "vendor/esp32-dht11-rs" }
+
+
+# For fine tuning these settings, please refer to https://doc.rust-lang.org/cargo/reference/profiles.html
+[profile.dev]
+# The default debug profile is too slow and too big for resource-constrained devices.
+# Always build with some optimizations enabled.
+opt-level = "s"
+
+[profile.release]
+codegen-units = 1     # LLVM can perform better optimizations using a single thread
+debug         = 2     # prefer slower builds but better debugging experience
+lto           = 'fat'
+opt-level     = 's'

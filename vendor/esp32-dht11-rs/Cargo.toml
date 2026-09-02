@@ -1,0 +1,26 @@
+[package]
+edition = "2021"
+name = "esp32-dht11-rs"
+version = "0.1.4"
+description = "A Rust crate that reads temperature and humidity data from DHT11 sensors for ESP32 series."
+license = "MIT"
+repository = "https://github.com/wendell1002/esp32-dht11-rs"
+build = false
+
+[features]
+default = ["esp32c3"]
+esp32 = ["esp-hal/esp32"]
+esp32c2 = ["esp-hal/esp32c2"]
+esp32c3 = ["esp-hal/esp32c3"]
+esp32c6 = ["esp-hal/esp32c6"]
+esp32h2 = ["esp-hal/esp32h2"]
+esp32s2 = ["esp-hal/esp32s2"]
+esp32s3 = ["esp-hal/esp32s3"]
+
+[lib]
+name = "esp32_dht11_rs"
+path = "src/lib.rs"
+
+[dependencies]
+embedded-hal = "1.0.0"
+esp-hal = { version = "~1.1.0", features = ["requires-unstable"] }
