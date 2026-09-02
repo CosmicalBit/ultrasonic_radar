@@ -28,10 +28,8 @@ impl Init for Esp {
 
         let delay = Delay::new();
 
-        
-        
         let dhh = DHT11::new(peripherals.GPIO1, delay);
-        
+
         let dhh = DhtSensor::new(dhh);
 
         Self { ultra_sonic_sensor, temp_sensor: dhh }
@@ -107,3 +105,4 @@ impl DhtSensor {
         }
     }
 }
+

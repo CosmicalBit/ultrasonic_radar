@@ -12,6 +12,8 @@ use esp_println::println;
 
 use crate::esp_init::{Esp, Init};
 mod esp_init;
+mod mpcu_6050_driver;
+
 
 #[panic_handler]
 fn panic(_: &core::panic::PanicInfo) -> ! {
