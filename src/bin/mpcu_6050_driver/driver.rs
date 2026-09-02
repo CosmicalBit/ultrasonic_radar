@@ -1,3 +1,4 @@
+///register docs: https://dfimg.dfrobot.com/enshop/image/data/SEN0142/RM-MPU-6000A.pdf
 use core::{from, ptr::read};
 
 use embedded_hal::i2c::I2c;
@@ -90,7 +91,7 @@ where
 
         byte |= 1 << 2;
         byte |= 1 << 1;
-        byte |= 1 << 0 ;
+        byte |= 1 << 0;
 
         self.i2c.write(DEVICE_ADDR, &[PWR_MGMT_2, byte])?;
 
@@ -108,10 +109,10 @@ where
         self.i2c.write_read(DEVICE_ADDR, &[PWR_MGMT_2], &mut red)?;
 
         let mut byte = red[0];
-        
+
         byte &= !(0b11 << 6);
         byte |= frequency << 6;
-        
+
         self.i2c.write(DEVICE_ADDR, &[PWR_MGMT_2, byte])?;
 
         Ok(())
