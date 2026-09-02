@@ -1,13 +1,10 @@
 [target.xtensa-esp32s3-none-elf]
 runner = "espflash flash --monitor --chip esp32s3"
-
-[env]
-
-[build]
 rustflags = [
   "-C", "link-arg=-nostartfiles",
 ]
 
+[build]
 target = "xtensa-esp32s3-none-elf"
 
 [unstable]
