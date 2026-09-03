@@ -62,7 +62,7 @@ where
     _data: PhantomData<State>,
 }
 
-impl<BUS, OFF> Mpu6050<BUS, OFF>
+impl<BUS> Mpu6050<BUS, OFF>
 where
     BUS: embedded_hal::i2c::I2c,
 {
@@ -131,7 +131,7 @@ const fn get_wake_up_frequency_bit(frequency: WakeUpFrequency) -> u8 {
     }
 }
 
-impl<BUS: I2c, OFF> Mpu6050<BUS, OFF> {
+impl<BUS: I2c> Mpu6050<BUS, OFF> {
     pub fn start(mut self, frequency: WakeUpFrequency) -> Result<Mpu6050<BUS, ON>, Error<BUS::Error>> {
         self.wake()?;
         self.set_wake_up_frequency(frequency)?;
@@ -144,7 +144,7 @@ impl<BUS: I2c, OFF> Mpu6050<BUS, OFF> {
     }
 }
 
-impl<BUS: I2c, ON> Mpu6050<BUS, ON> {
+impl<BUS: I2c> Mpu6050<BUS, ON> {
     pub fn set_capabilities(self, capabilities: Capabilities) -> Mpu6050<BUS, CapabilitiesSetted> {
         Mpu6050::<BUS, CapabilitiesSetted> {
             _data: PhantomData,
