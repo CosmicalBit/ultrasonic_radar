@@ -8,12 +8,9 @@ use esp_hal::i2c;
 const WHO_AM_I: u8 = 0x75;
 const DEVICE_ADDR: u8 = 0x68;
 const PWR_MGMT_1: u8 = 0x6B;
-const PWR_MGMT_2: u8 = 0x6C;
 const FIFO_COUNT_H: u8 = 0x72;
-const FIFO_COUNT_L: u8 = 0x73;
-const MOT_THR: u8 = 0x1F;
 const GYRO_CONFIG: u8 = 0x1B;
-const ACCEL_CONFIG:u8 = 0x1C;
+const ACCEL_CONFIG: u8 = 0x1C;
 
 pub enum Error<E> {
     WhoAmI,
@@ -43,7 +40,6 @@ pub enum Capabilities {
     Gyroscope,
 }
 
-
 pub struct OFF;
 pub struct ON;
 pub struct CapabilitiesSetted;
@@ -71,7 +67,6 @@ where
         })
     }
 
-    
     fn wake(&mut self) -> Result<(), Error<BUS::Error>> {
         let mut data = [0u8; 1];
 
@@ -82,7 +77,6 @@ where
 
         Ok(())
     }
- 
 
     fn read_fifo_count(&mut self) -> Result<u16, Error<BUS::Error>> {
         let mut red = [0u8; 2];
@@ -91,13 +85,10 @@ where
 
         Ok(u16::from_be_bytes([red[0], red[1]]))
     }
-}
 
-
-impl<BUS: I2c> Mpu6050<BUS, OFF> {
     pub fn start(mut self) -> Result<Mpu6050<BUS, ON>, Error<BUS::Error>> {
         self.wake()?;
-        
+
         Ok(Mpu6050::<BUS, ON> {
             i2c: self.i2c,
             capabilities: None,
@@ -117,4 +108,3 @@ impl<BUS: I2c> Mpu6050<BUS, ON> {
 }
 //after configure mesuraments ranges GYRO_CONFIG ACCEL_CONFIG
 // TODO continue on page 44
-
