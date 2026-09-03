@@ -86,7 +86,7 @@ where
     ///     (ii) Set SLEEP bit to 0
     ///     (iii) Set TEMP_DIS bit to 1
     ///     (iv) Set STBY_XG, STBY_YG, STBY_ZG bits to 1
-    fn leave_sleep_mode(&mut self) -> Result<(), Error<BUS::Error>> {
+    fn enter_sleep_mode(&mut self) -> Result<(), Error<BUS::Error>> {
         let mut red = [0u8, 1];
         self.i2c.write_read(DEVICE_ADDR, &[PWR_MGMT_1], &mut red)?;
 
@@ -110,6 +110,16 @@ where
         byte |= 1 << 0;
 
         self.i2c.write(DEVICE_ADDR, &[PWR_MGMT_2, byte])?;
+
+        Ok(())
+    }
+    fn wake(&mut self) -> Result<(), Error<BUS::Error>> {
+        let mut data = [0u8; 1];
+
+        self.i2c.write_read(DEVICE_ADDR, &[PWR_MGMT_1], &mut data)?;
+
+        data[0] &= !(1 << 6);
+        self.i2c.write(DEVICE_ADDR, &[PWR_MGMT_1, data[0]])?;
 
         Ok(())
     }
@@ -159,7 +169,7 @@ const fn get_wake_up_frequency_bit(frequency: WakeUpFrequency) -> u8 {
 
 impl<BUS: I2c, OFF> Mpu6050<BUS, OFF> {
     pub fn start(mut self, frequency: WakeUpFrequency) -> Result<Mpu6050<BUS, ON>, Error<BUS::Error>> {
-        self.leave_sleep_mode()?;
+        self.wake()?;
         self.set_wake_up_frequency(frequency)?;
 
         Ok(Mpu6050::<BUS, ON> {
