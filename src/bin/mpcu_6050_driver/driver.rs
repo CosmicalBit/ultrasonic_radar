@@ -35,9 +35,9 @@ where
 
     Ok(())
 }
-pub enum Capabilities {
-    Accelerometer,
-    Gyroscope,
+pub struct  Capabilities {
+    Accelerometer:bool,
+    Gyroscope:bool,
 }
 
 pub struct OFF;
