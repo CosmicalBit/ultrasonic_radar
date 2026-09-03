@@ -81,26 +81,7 @@ where
 
         Ok(())
     }
-    /// LP_WAKE_CTRL    Wake-up Frequency
-    /// 0               1.25 Hz
-    /// 1               5 Hz
-    /// 2               20 Hz
-    /// 3               40 Hz
-    fn set_wake_up_frequency(&mut self, frequency: WakeUpFrequency) -> Result<(), Error<BUS::Error>> {
-        let frequency = get_wake_up_frequency_bit(frequency);
-
-        let mut red = [0u8; 1];
-        self.i2c.write_read(DEVICE_ADDR, &[PWR_MGMT_2], &mut red)?;
-
-        let mut byte = red[0];
-
-        byte &= !(0b11 << 6);
-        byte |= frequency << 6;
-
-        self.i2c.write(DEVICE_ADDR, &[PWR_MGMT_2, byte])?;
-
-        Ok(())
-    }
+ 
 
     fn read_fifo_count(&mut self) -> Result<u16, Error<BUS::Error>> {
         let mut red = [0u8; 2];
