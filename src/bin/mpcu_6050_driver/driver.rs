@@ -76,16 +76,6 @@ where
         })
     }
 
-    ///This register allows the user to configure the frequency of wake-ups in Accelerometer Only Low
-    /// Power Mode. This register also allows the user to put individual axes of the accelerometer and
-    ///gyroscope into standby mode.
-    ///
-    ///Description:
-    ///The MPU-60X0 can be put into Accelerometer Only Low Power Mode using the following steps:
-    ///     (i) Set CYCLE bit to 1
-    ///     (ii) Set SLEEP bit to 0
-    ///     (iii) Set TEMP_DIS bit to 1
-    ///     (iv) Set STBY_XG, STBY_YG, STBY_ZG bits to 1
     
     fn wake(&mut self) -> Result<(), Error<BUS::Error>> {
         let mut data = [0u8; 1];
