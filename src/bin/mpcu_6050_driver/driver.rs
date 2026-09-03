@@ -13,6 +13,7 @@ const FIFO_COUNT_H: u8 = 0x72;
 const FIFO_COUNT_L: u8 = 0x73;
 const MOT_THR: u8 = 0x1F;
 const GYRO_CONFIG: u8 = 0x1B;
+const ACCEL_CONFIG:u8 = 0x1C;
 
 pub enum Error<E> {
     WhoAmI,
@@ -93,11 +94,10 @@ where
 }
 
 
-
 impl<BUS: I2c> Mpu6050<BUS, OFF> {
     pub fn start(mut self) -> Result<Mpu6050<BUS, ON>, Error<BUS::Error>> {
         self.wake()?;
-
+        
         Ok(Mpu6050::<BUS, ON> {
             i2c: self.i2c,
             capabilities: None,
