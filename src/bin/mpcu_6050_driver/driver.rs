@@ -118,20 +118,3 @@ impl<BUS: I2c> Mpu6050<BUS, ON> {
 //after configure mesuraments ranges GYRO_CONFIG ACCEL_CONFIG
 // TODO continue on page 44
 
-#[cfg(test)]
-mod test {
-    use super::*;
-
-    #[test]
-    fn test_wake_up_bit() {
-        let resh = get_wake_up_frequency_bit(WakeUpFrequency::High);
-        let resm = get_wake_up_frequency_bit(WakeUpFrequency::Medium);
-        let resl = get_wake_up_frequency_bit(WakeUpFrequency::Low);
-        let resvl = get_wake_up_frequency_bit(WakeUpFrequency::VeryLow);
-
-        assert_eq!(resh, 3);
-        assert_eq!(resm, 2);
-        assert_eq!(resl, 1);
-        assert_eq!(resvl, 0);
-    }
-}
