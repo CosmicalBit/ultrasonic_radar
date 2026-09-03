@@ -86,33 +86,7 @@ where
     ///     (ii) Set SLEEP bit to 0
     ///     (iii) Set TEMP_DIS bit to 1
     ///     (iv) Set STBY_XG, STBY_YG, STBY_ZG bits to 1
-    fn enter_sleep_mode(&mut self) -> Result<(), Error<BUS::Error>> {
-        let mut red = [0u8, 1];
-        self.i2c.write_read(DEVICE_ADDR, &[PWR_MGMT_1], &mut red)?;
-
-        let mut byte = red[0];
-
-        //disable sleep
-        byte &= !(1 << 6);
-        //enable cycle mode
-        byte |= 1 << 5;
-
-        //set TEMP_DIS bit to one
-        byte |= 1 << 3;
-        self.i2c.write(DEVICE_ADDR, &[PWR_MGMT_1, byte])?;
-
-        self.i2c.write_read(DEVICE_ADDR, &[PWR_MGMT_2], &mut red)?;
-
-        let mut byte = red[0];
-
-        byte |= 1 << 2;
-        byte |= 1 << 1;
-        byte |= 1 << 0;
-
-        self.i2c.write(DEVICE_ADDR, &[PWR_MGMT_2, byte])?;
-
-        Ok(())
-    }
+    
     fn wake(&mut self) -> Result<(), Error<BUS::Error>> {
         let mut data = [0u8; 1];
 
