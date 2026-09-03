@@ -42,7 +42,7 @@ pub struct Capabilities {
 
 pub struct OFF;
 pub struct ON;
-pub struct CapabilitiesSetted;
+pub struct Configured;
 
 pub struct Mpu6050<BUS, State>
 where
@@ -110,6 +110,13 @@ impl<BUS: I2c> Mpu6050<BUS, ON> {
         self.i2c.write(DEVICE_ADDR, &[ACCEL_CONFIG, data[0]])?;
 
         Ok(())
+    }
+
+    pub fn config(mut self) -> Result<Mpu6050<BUS, Configured>, Error<BUS::Error>> {
+        self.accel_config()?;
+        self.set_gyro_range()?;
+
+        Ok(Mpu6050::<BUS, Configured> { i2c: self.i2c, _data: PhantomData })
     }
 
     //this will be moooved to a new impl
