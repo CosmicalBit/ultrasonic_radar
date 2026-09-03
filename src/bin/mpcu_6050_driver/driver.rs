@@ -11,7 +11,7 @@ const PWR_MGMT_1: u8 = 0x6B;
 const FIFO_COUNT_H: u8 = 0x72;
 const GYRO_CONFIG: u8 = 0x1B;
 const ACCEL_CONFIG: u8 = 0x1C;
-
+const FIFO_R_W: u8 = 0x74;
 
 //bcs is gyro + accel
 const SAMPLE_SIZE: u8 = 12;
@@ -122,10 +122,34 @@ impl<BUS: I2c> Mpu6050<BUS, ON> {
 
         Ok(Mpu6050::<BUS, Configured> { i2c: self.i2c, _data: PhantomData })
     }
-
-    
 }
-impl<BUS:I2c> Mpu6050<BUS,Configured>{
+
+pub struct SampleData {
+    accel_x: i16,
+    accel_y: i16,
+    accel_z: i16,
+    gyro_x: i16,
+    gyro_y: i16,
+    gyro_z: i16,
+}
+
+impl<BUS: I2c> Mpu6050<BUS, Configured> {
+    const FIFO_R_W: u8 = 0x74;
+
+    fn read_sample(&mut self) -> Result<[i16; 6], BUS::Error> {
+        let mut data = [0u8; 12];
+
+        self.i2c.write_read(DEVICE_ADDR, &[FIFO_R_W], &mut data)?;
+
+        Ok([
+            i16::from_be_bytes([data[0], data[1]]),   // accel X
+            i16::from_be_bytes([data[2], data[3]]),   // accel Y
+            i16::from_be_bytes([data[4], data[5]]),   // accel Z
+            i16::from_be_bytes([data[6], data[7]]),   // gyro X
+            i16::from_be_bytes([data[8], data[9]]),   // gyro Y
+            i16::from_be_bytes([data[10], data[11]]), // gyro Z
+        ])
+    }
     fn read_fifo_count(&mut self) -> Result<u16, Error<BUS::Error>> {
         let mut red = [0u8; 2];
 
@@ -133,13 +157,22 @@ impl<BUS:I2c> Mpu6050<BUS,Configured>{
 
         Ok(u16::from_be_bytes([red[0], red[1]]))
     }
-    fn read_data(&mut self)->Result<(),Error<BUS::Error>>{
+    pub fn read_data(&mut self) -> Result<Option<SampleData>, Error<BUS::Error>> {
         let bytes = self.read_fifo_count()?;
-        if bytes > 1024{
-            todo!("FIFO overflow");
+
+        if bytes < 12 {
+            return Ok(None);
         }
-        todo!("read the data");
-        
-        Ok(())
+
+        let sample = self.read_sample()?;
+
+        Ok(Some(SampleData {
+            accel_x: sample[0],
+            accel_y: sample[1],
+            accel_z: sample[2],
+            gyro_x: sample[3],
+            gyro_y: sample[4],
+            gyro_z: sample[5],
+        }))
     }
 }
