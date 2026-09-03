@@ -12,6 +12,10 @@ const FIFO_COUNT_H: u8 = 0x72;
 const GYRO_CONFIG: u8 = 0x1B;
 const ACCEL_CONFIG: u8 = 0x1C;
 
+
+//bcs is gyro + accel
+const SAMPLE_SIZE: u8 = 12;
+
 pub enum Error<E> {
     WhoAmI,
     I2c(E),
@@ -119,12 +123,23 @@ impl<BUS: I2c> Mpu6050<BUS, ON> {
         Ok(Mpu6050::<BUS, Configured> { i2c: self.i2c, _data: PhantomData })
     }
 
-    //this will be moooved to a new impl
+    
+}
+impl<BUS:I2c> Mpu6050<BUS,Configured>{
     fn read_fifo_count(&mut self) -> Result<u16, Error<BUS::Error>> {
         let mut red = [0u8; 2];
 
         self.i2c.write_read(DEVICE_ADDR, &[FIFO_COUNT_H], &mut red)?;
 
         Ok(u16::from_be_bytes([red[0], red[1]]))
+    }
+    fn read_data(&mut self)->Result<(),Error<BUS::Error>>{
+        let bytes = self.read_fifo_count()?;
+        if bytes > 1024{
+            todo!("FIFO overflow");
+        }
+        todo!("read the data");
+        
+        Ok(())
     }
 }
