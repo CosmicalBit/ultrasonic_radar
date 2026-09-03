@@ -1,23 +1,26 @@
+use embedded_hal::i2c::I2c;
 use esp_hal::{
+    Blocking,
     clock::CpuClock,
     delay::Delay,
     gpio::{Input, InputConfig, Level, Output, OutputConfig},
+    i2c::master::Config as I2cConfig,
     time::Instant,
 };
+type I2C_TYPE = esp_hal::i2c::master::I2c<'static, Blocking>;
+
 use esp_println::println;
 use esp32_dht11_rs::DHT11;
+use ultrasonic_radar::mpu_6050_driver::driver::{Configured, Mpu6050};
 
-pub struct Esp {
+pub struct Esp<BUS: I2c> {
     ultra_sonic_sensor: UltrasonicSensor,
     temp_sensor: DhtSensor,
+    mpu_6050: Mpu6050<BUS, Configured>,
 }
 
-pub trait Init {
-    fn init() -> Self;
-}
-
-impl Init for Esp {
-    fn init() -> Self {
+impl Esp<I2C_TYPE> {
+    pub fn init() -> Self {
         let config = esp_hal::Config::default().with_cpu_clock(CpuClock::max());
         let peripherals = esp_hal::init(config);
 
@@ -32,7 +35,17 @@ impl Init for Esp {
 
         let dhh = DhtSensor::new(dhh);
 
-        Self { ultra_sonic_sensor, temp_sensor: dhh }
+        let i2c = I2C_TYPE::new(peripherals.I2C0, I2cConfig::default()).unwrap().with_sda(peripherals.GPIO5).with_scl(peripherals.GPIO3);
+
+        let device = Mpu6050::init(i2c).unwrap();
+        let device = device.start().unwrap();
+        let device = device.config().unwrap();
+
+        Self {
+            ultra_sonic_sensor,
+            temp_sensor: dhh,
+            mpu_6050: device,
+        }
     }
 }
 
@@ -47,8 +60,8 @@ impl UltrasonicSensor {
     }
 }
 
-impl Esp {
-    pub fn mesure_distance(&mut self) -> f32 {
+impl Esp<I2C_TYPE> {
+    pub fn mesure_distance(&mut self) -> Option<f32> {
         //actual arguments
         let ultra_sensor = &mut self.ultra_sonic_sensor;
         let temp_sensor = &mut self.temp_sensor;
@@ -59,23 +72,36 @@ impl Esp {
         ultra_sensor.trig.set_high();
         delay.delay_micros(10);
 
-        while ultra_sensor.echo.is_low() {}
+        let echo_timeout = Instant::now();
+        while ultra_sensor.echo.is_low() {
+            if echo_timeout.elapsed().as_millis() >= 30 {
+                return None;
+            }
+        }
 
         let start = Instant::now();
 
-        while ultra_sensor.echo.is_high() {}
+        while ultra_sensor.echo.is_high() {
+            if start.elapsed().as_millis() >= 30 {
+                return None;
+            }
+        }
         let high_time = start.elapsed();
 
-        println!("before temp");
         let (temp, _) = temp_sensor.mesure();
 
-        println!("{temp}");
         let speed_sound_cm_per_us = (331.3 + 0.606 * temp as f32) / 10_000.0;
 
         println!("{speed_sound_cm_per_us}");
 
         //distance calculation following a existing knowed formula
-        high_time.as_micros() as f32 * speed_sound_cm_per_us / 2.0
+        Some(high_time.as_micros() as f32 * speed_sound_cm_per_us / 2.0)
+    }
+    /// Returns the accelerometer and gyroscope values from the same FIFO sample.
+    pub fn mesure_motion(&mut self) -> Option<((i16, i16, i16), (i16, i16, i16))> {
+        let data = self.mpu_6050.read_data().unwrap()?;
+
+        Some(((data.accel_x, data.accel_y, data.accel_z), (data.gyro_x, data.gyro_y, data.gyro_z)))
     }
 }
 
