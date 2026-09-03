@@ -35,9 +35,9 @@ where
 
     Ok(())
 }
-pub struct  Capabilities {
-    Accelerometer:bool,
-    Gyroscope:bool,
+pub struct Capabilities {
+    Accelerometer: bool,
+    Gyroscope: bool,
 }
 
 pub struct OFF;
@@ -49,7 +49,6 @@ where
     BUS: embedded_hal::i2c::I2c,
 {
     i2c: BUS,
-    capabilities: Option<Capabilities>,
     _data: PhantomData<State>,
 }
 
@@ -60,11 +59,7 @@ where
     pub fn init(mut i2c: BUS) -> Result<Self, Error<BUS::Error>> {
         hello(&mut i2c)?;
 
-        Ok(Self {
-            i2c,
-            capabilities: None,
-            _data: PhantomData,
-        })
+        Ok(Self { i2c, _data: PhantomData })
     }
 
     fn wake(&mut self) -> Result<(), Error<BUS::Error>> {
@@ -78,6 +73,46 @@ where
         Ok(())
     }
 
+    pub fn start(mut self) -> Result<Mpu6050<BUS, ON>, Error<BUS::Error>> {
+        self.wake()?;
+
+        Ok(Mpu6050::<BUS, ON> { i2c: self.i2c, _data: PhantomData })
+    }
+}
+
+impl<BUS: I2c> Mpu6050<BUS, ON> {
+    fn set_gyro_range(&mut self) -> Result<(), Error<BUS::Error>> {
+        let mut data = [0u8; 1];
+
+        self.i2c.write_read(DEVICE_ADDR, &[GYRO_CONFIG], &mut data)?;
+
+        //clear both bits
+        data[0] &= !(0b11 << 3);
+
+        data[0] |= 1 << 3;
+        data[0] |= 1 << 4;
+
+        self.i2c.write(DEVICE_ADDR, &[GYRO_CONFIG, data[0]])?;
+
+        Ok(())
+    }
+    fn accel_config(&mut self) -> Result<(), Error<BUS::Error>> {
+        let mut data = [0u8; 1];
+
+        self.i2c.write_read(DEVICE_ADDR, &[ACCEL_CONFIG], &mut data)?;
+
+        data[0] &= !(1 << 4);
+        data[0] &= !(1 << 3);
+
+        data[0] |= 1 << 4;
+        data[0] |= 1 << 3;
+
+        self.i2c.write(DEVICE_ADDR, &[ACCEL_CONFIG, data[0]])?;
+
+        Ok(())
+    }
+
+    //this will be moooved to a new impl
     fn read_fifo_count(&mut self) -> Result<u16, Error<BUS::Error>> {
         let mut red = [0u8; 2];
 
@@ -85,26 +120,4 @@ where
 
         Ok(u16::from_be_bytes([red[0], red[1]]))
     }
-
-    pub fn start(mut self) -> Result<Mpu6050<BUS, ON>, Error<BUS::Error>> {
-        self.wake()?;
-
-        Ok(Mpu6050::<BUS, ON> {
-            i2c: self.i2c,
-            capabilities: None,
-            _data: PhantomData,
-        })
-    }
 }
-
-impl<BUS: I2c> Mpu6050<BUS, ON> {
-    pub fn set_capabilities(self, capabilities: Capabilities) -> Mpu6050<BUS, CapabilitiesSetted> {
-        Mpu6050::<BUS, CapabilitiesSetted> {
-            _data: PhantomData,
-            capabilities: Some(capabilities),
-            i2c: self.i2c,
-        }
-    }
-}
-//after configure mesuraments ranges GYRO_CONFIG ACCEL_CONFIG
-// TODO continue on page 44
