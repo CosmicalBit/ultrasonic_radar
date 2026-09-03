@@ -42,12 +42,6 @@ pub enum Capabilities {
     Gyroscope,
 }
 
-pub enum WakeUpFrequency {
-    VeryLow,
-    Low,
-    Medium,
-    High,
-}
 
 pub struct OFF;
 pub struct ON;
@@ -117,24 +111,11 @@ where
     }
 }
 
-/// LP_WAKE_CTRL    Wake-up Frequency
-/// 0               1.25 Hz
-/// 1               5 Hz
-/// 2               20 Hz
-/// 3               40 Hz
-const fn get_wake_up_frequency_bit(frequency: WakeUpFrequency) -> u8 {
-    match frequency {
-        WakeUpFrequency::VeryLow => 0,
-        WakeUpFrequency::Low => 1,
-        WakeUpFrequency::Medium => 2,
-        WakeUpFrequency::High => 3,
-    }
-}
+
 
 impl<BUS: I2c> Mpu6050<BUS, OFF> {
-    pub fn start(mut self, frequency: WakeUpFrequency) -> Result<Mpu6050<BUS, ON>, Error<BUS::Error>> {
+    pub fn start(mut self) -> Result<Mpu6050<BUS, ON>, Error<BUS::Error>> {
         self.wake()?;
-        self.set_wake_up_frequency(frequency)?;
 
         Ok(Mpu6050::<BUS, ON> {
             i2c: self.i2c,
