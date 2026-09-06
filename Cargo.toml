@@ -25,6 +25,7 @@ critical-section = "1.2.0"
 esp-alloc        = "0.10.0"
 esp32-dht11-rs = { version = "0.1.4", default-features = false, features = ["esp32s3"] }
 esp-println = { version = "0.17.0", features = ["esp32s3"] }
+embassy-net = "0.7.0"
 
 
 [patch.crates-io]

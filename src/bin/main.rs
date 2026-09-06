@@ -11,8 +11,11 @@ use esp_hal::{main, time::Instant};
 use esp_println::println;
 
 use crate::{esp_init::Esp, position::{calculate_pointed_point, update_orientation, Orientation}};
+
 mod esp_init;
 mod position;
+mod init;
+
 
 #[panic_handler]
 pub fn panic(_: &core::panic::PanicInfo) -> ! {
@@ -54,6 +57,9 @@ fn main() -> ! {
         };
 
         let pointed_point = calculate_pointed_point((0.0, 0.0, 0.0), orientation.clone(), distance);
+        
+        
+        
         println!("distance: {distance} cm, pointed point: {:?}", pointed_point);
     }
 
