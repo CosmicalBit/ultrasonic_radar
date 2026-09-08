@@ -7,15 +7,18 @@
 )]
 #![deny(clippy::large_stack_frames)]
 
+use embassy_executor::Spawner;
 use esp_hal::{main, time::Instant};
 use esp_println::println;
 
-use crate::{esp_init::Esp, position::{calculate_pointed_point, update_orientation, Orientation}};
+use crate::{
+    esp_init::{esp::Esp, point::{Point,NetSend}},
+    position::{Orientation, calculate_pointed_point, update_orientation},
+};
 
+mod debug;
 mod esp_init;
 mod position;
-mod init;
-
 
 #[panic_handler]
 pub fn panic(_: &core::panic::PanicInfo) -> ! {
@@ -29,13 +32,12 @@ extern crate alloc;
 // This creates a default app-descriptor required by the esp-idf bootloader.
 // For more information see: <https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-reference/system/app_image_format.html#application-description>
 esp_bootloader_esp_idf::esp_app_desc!();
-
 #[allow(clippy::large_stack_frames, reason = "it's not unusual to allocate larger buffers etc. in main")]
-#[main]
-fn main() -> ! {
+#[esp_rtos::main]
+async fn main(spwaner: Spawner) -> ! {
     esp_alloc::heap_allocator!(#[esp_hal::ram(reclaimed)] size: 73744);
 
-    let mut esp = Esp::init();
+    let mut esp = Esp::init(spwaner).await;
     let mut orientation = Orientation::default();
     let mut previous_sample = Instant::now();
     println!("inited");
@@ -57,10 +59,13 @@ fn main() -> ! {
         };
 
         let pointed_point = calculate_pointed_point((0.0, 0.0, 0.0), orientation.clone(), distance);
-        
-        
-        
+
         println!("distance: {distance} cm, pointed point: {:?}", pointed_point);
+
+        let pointed_point = Point::new(pointed_point);
+        pointed_point.send_udp(&esp).await.unwrap();
+
+        
     }
 
     // for inspiration have a look at the examples at https://github.com/esp-rs/esp-hal/tree/esp-hal-v1.1.0/examples

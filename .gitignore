@@ -2,6 +2,10 @@
 debug/
 target/
 
+# Local Wi-Fi credentials (keep the example file in git)
+.env
+!.env.example
+
 # Editor configuration
 .vscode/
 .zed/
