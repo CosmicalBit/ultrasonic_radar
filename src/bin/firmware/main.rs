@@ -12,7 +12,10 @@ use esp_hal::{main, time::Instant};
 use esp_println::println;
 
 use crate::{
-    esp_init::{esp::Esp, point::{Point,NetSend}},
+    esp_init::{
+        esp::Esp,
+        point::{NetSend, Point},
+    },
     position::{Orientation, calculate_pointed_point, update_orientation},
 };
 
@@ -21,9 +24,10 @@ mod esp_init;
 mod position;
 
 #[panic_handler]
-pub fn panic(_: &core::panic::PanicInfo) -> ! {
+pub fn panic(info: &core::panic::PanicInfo) -> ! {
+    println!("panic: {info}");
     loop {
-        println!("panic panic")
+        core::hint::spin_loop();
     }
 }
 
@@ -64,8 +68,6 @@ async fn main(spwaner: Spawner) -> ! {
 
         let pointed_point = Point::new(pointed_point);
         pointed_point.send_udp(&esp).await.unwrap();
-
-        
     }
 
     // for inspiration have a look at the examples at https://github.com/esp-rs/esp-hal/tree/esp-hal-v1.1.0/examples

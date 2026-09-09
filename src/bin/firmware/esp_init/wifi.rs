@@ -5,6 +5,7 @@ use embassy_net::{
     Config, DhcpConfig, Runner, StackResources,
     udp::{BindError, PacketMetadata, SendError, UdpSocket},
 };
+use embassy_time::Timer;
 use esp_hal::rng::Rng;
 use esp_radio::wifi::{Config as WifiConfig, Interface, Interfaces, WifiController, sta::StationConfig};
 use static_cell::StaticCell;
@@ -63,10 +64,15 @@ impl Wifi<Disconnected> {
         let station_config = WifiConfig::Station(StationConfig::default().with_ssid(SSID).with_password(PASSWORD.into()));
         self.controller.set_config(&station_config).unwrap();
 
-        let _connected = match self.controller.connect_async().await {
-            Ok(_) => (),
-            Err(e) => panic!("error connecting:\n {e}"),
-        };
+        loop {
+            match self.controller.connect_async().await {
+                Ok(_) => break,
+                Err(error) => {
+                    esp_println::println!("Wi-Fi connection failed: {error:?}; retrying in 5 seconds");
+                    Timer::after_secs(5).await;
+                },
+            }
+        }
 
         let net_config = Config::dhcpv4(DhcpConfig::default());
 
@@ -90,13 +96,12 @@ impl Wifi<Disconnected> {
         }
     }
 }
-
+#[allow(dead_code)]
 #[derive(Debug)]
 pub enum NetworkError {
     BindError(BindError),
     SendError(SendError),
 }
-
 
 impl From<SendError> for NetworkError {
     fn from(value: SendError) -> Self {

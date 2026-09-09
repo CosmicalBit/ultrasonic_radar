@@ -1,68 +1,62 @@
-use std::{io, net::SocketAddr};
+use std::io;
 
 use raylib::prelude::*;
-use tokio::net::{TcpListener, UdpSocket};
+use tokio::net::UdpSocket;
 use ultrasonic_radar::protocol::SendHeader;
 
-#[derive(Debug)]
-pub enum NetworkError {
-    BindError(io::Error),
-    ReceiveError(io::Error),
-    InvalidPacketLength(usize),
-}
+const ADDR: &str = "0.0.0.0:5000";
 
-const ADDR: &str = " 300";
-
-//TODO: hadle user input 
 #[tokio::main]
 async fn main() -> io::Result<()> {
-    let (mut rl, thread) = raylib::init().size(640, 480).title("Hello, World").build();
+    let socket = UdpSocket::bind(ADDR).await?;
+    let (mut rl, thread) = raylib::init().size(640, 480).title("Ultrasonic radar").build();
+    rl.set_target_fps(60);
+
+    let position = Vector3::new(0.0, 0.0, 0.0);
+    let direction = Vector3::new(0.0, 0.0, -1.0);
+    let camera = Camera3D::perspective(position, position + direction, Vector3::new(0.0, 1.0, 0.0), 45.0);
+    let mut points = Vec::new();
+    let mut packet = [0_u8; 13];
 
     while !rl.window_should_close() {
-        let mut d = rl.begin_drawing(&thread);
+        loop {
+            match socket.try_recv_from(&mut packet) {
+                Ok((length, _)) => handle_packet(&packet[..length], &mut points),
+                Err(error) if error.kind() == io::ErrorKind::WouldBlock => break,
+                Err(error) => return Err(error),
+            }
+        }
 
+        let mut d = rl.begin_drawing(&thread);
         d.clear_background(Color::WHITE);
 
-        let position = Vector3::new(0.0, 0.0, 0.0);
-        let direction = Vector3::new(0.0, 0.0, -1.0);
-
-        let camera = Camera3D::perspective(position, position + direction, Vector3::new(0.0, 1.0, 0.0), 45.0);
-
-        loop {
-            let socket = UdpSocket::bind(ADDR).await?;
-
-            let mut header = [0u8; 1];
-            socket.recv_from(&mut header).await?;
-
-            handle_header(&header, &socket, rl, &camera).await?;
+        for &point in &points {
+            let screen_point = d.get_world_to_screen(point, camera);
+            d.draw_circle_v(screen_point, 4.0, Color::RED);
         }
+
+        d.draw_text(&format!("Points: {}", points.len()), 10, 10, 20, Color::DARKGRAY);
     }
+
     Ok(())
 }
 
-async fn handle_header(header: &[u8; 1], socket: &UdpSocket, rl: RaylibHandle, camera: &Camera3D) {
-    let mut point = (SendHeader::Point as u8).to_be_bytes();
-
-    match header[0] {
-        point => {
-            let point = read_point(socket).await?;
-            rl.get_world_to_screen(point, camera);
-        },
+fn handle_packet(packet: &[u8], points: &mut Vec<Vector3>) {
+    if packet.first() == Some(&(SendHeader::Point as u8)) {
+        if let Some(point) = read_point(&packet[1..]) {
+            points.push(point);
+        }
     }
 }
 
-async fn read_point(socket: &UdpSocket) -> io::Result<Vector3> {
-    let mut x = [0u8; 4];
-    let mut y = [0u8; 4];
-    let mut z = [0u8; 4];
+fn read_point(bytes: &[u8]) -> Option<Vector3> {
+    if bytes.len() != 12 {
+        return None;
+    }
 
-    socket.recv_from(&mut x).await?;
-    socket.recv_from(&mut y).await?;
-    socket.recv_from(&mut z).await?;
-
-    Ok(Vector3 {
-        x: f32::from_be_bytes(x),
-        y: f32::from_be_bytes(y),
-        z: f32::from_be_bytes(z),
+    Some(Vector3 {
+        x: f32::from_be_bytes(bytes[0..4].try_into().ok()?),
+        y: f32::from_be_bytes(bytes[4..8].try_into().ok()?),
+        z: f32::from_be_bytes(bytes[8..12].try_into().ok()?),
     })
 }

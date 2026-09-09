@@ -74,7 +74,11 @@ where
             Err(error) => return Err(error),
         };
 
-        Ok(Self { i2c, address, _data: PhantomData })
+        Ok(Self {
+            i2c,
+            address,
+            _data: PhantomData,
+        })
     }
 
     fn wake(&mut self) -> Result<(), Error<BUS::Error>> {

@@ -1,8 +1,6 @@
+use core::{clone::Clone, default::Default, fmt::Debug, prelude::rust_2024::derive};
+
 use libm::{atan2f, cosf, sinf, sqrtf};
-use core::prelude::rust_2024::derive;
-use core::default::Default;
-use core::fmt::Debug;
-use core::clone::Clone;
 
 #[derive(Debug, Clone, Default)]
 pub struct Orientation {
@@ -11,12 +9,7 @@ pub struct Orientation {
     yaw: f32,
 }
 
-pub fn update_orientation(
-    mut orientation: Orientation,
-    accel: (i16, i16, i16),
-    gyro: (i16, i16, i16),
-    dt: f32,
-) -> Orientation {
+pub fn update_orientation(mut orientation: Orientation, accel: (i16, i16, i16), gyro: (i16, i16, i16), dt: f32) -> Orientation {
     let ax = accel.0 as f32;
     let ay = accel.1 as f32;
     let az = accel.2 as f32;
