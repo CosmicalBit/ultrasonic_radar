@@ -1,14 +1,16 @@
-use core::net::Ipv4Addr;
+use core::net::{Ipv4Addr, SocketAddrV4};
 
 use embassy_executor::Spawner;
 use embassy_net::{
-    Config, DhcpConfig, Runner, StackResources,
+    Config, DhcpConfig, Runner, StackResources, tcp,
+    tcp::{AcceptError, TcpSocket, client::TcpClient},
     udp::{BindError, PacketMetadata, SendError, UdpSocket},
 };
 use embassy_time::Timer;
 use esp_hal::rng::Rng;
 use esp_radio::wifi::{Config as WifiConfig, Interface, Interfaces, WifiController, sta::StationConfig};
 use static_cell::StaticCell;
+use crate::esp_init::wifi::NetworkError::{TcpAcceptError, TcpError};
 
 const SSID: &str = env!("SSID", "set SSID in the project's .env file");
 const PASSWORD: &str = match option_env!("PASSWORD") {
@@ -17,6 +19,7 @@ const PASSWORD: &str = match option_env!("PASSWORD") {
 };
 const DESTINY_IP: &str = env!("dest_ip", "set destiny ip in .env file");
 const DESTINY_PORT: &str = env!("dest_port", "set destiny port in .env file");
+const UDP_PORT: u16 = 5000;
 
 macro_rules! mk_static {
     ($type:ty, $value:expr) => {{
@@ -34,6 +37,16 @@ macro_rules! udp_socket {
         let mut tx_buf = [0u8; $size];
 
         let mut $socket = UdpSocket::new($stack, &mut rx_meta, &mut rx_buffer, &mut tx_meta, &mut tx_buf);
+    };
+}
+
+macro_rules! tcp_socket {
+    ($socket:ident, $stack:expr, $size:expr) => {
+        let mut rx_buffer = [0u8; $size];
+
+        let mut tx_buf = [0u8; $size];
+
+        let mut $socket = TcpSocket::new($stack, &mut rx_buffer, &mut tx_buf);
     };
 }
 
@@ -101,6 +114,14 @@ impl Wifi<Disconnected> {
 pub enum NetworkError {
     BindError(BindError),
     SendError(SendError),
+    TcpAcceptError(AcceptError),
+    TcpError(TcpErrors),
+}
+#[allow(dead_code)]
+#[derive(Debug)]
+pub enum TcpErrors {
+    TcpAcceptError(AcceptError),
+    TcpUseError(embassy_net::tcp::Error),
 }
 
 impl From<SendError> for NetworkError {
@@ -114,6 +135,16 @@ impl From<BindError> for NetworkError {
         NetworkError::BindError(value)
     }
 }
+impl From<AcceptError> for NetworkError {
+    fn from(value: AcceptError) -> Self {
+        TcpError(TcpErrors::TcpAcceptError(value))
+    }
+}
+impl From<embassy_net::tcp::Error> for NetworkError {
+    fn from(value: embassy_net::tcp::Error) -> Self {
+        TcpError(TcpErrors::TcpUseError(value))
+    }
+}
 
 impl Wifi<Connected> {
     pub(super) async fn send_udp(&self, data: impl AsRef<[u8]>) -> Result<(), NetworkError> {
@@ -122,17 +153,28 @@ impl Wifi<Connected> {
         let destiny_ip: Ipv4Addr = DESTINY_IP.parse().expect("invalid dest_ip in .env file");
         let destiny_port: u16 = DESTINY_PORT.parse().expect("invalid dest_port in .env file");
 
-        socket.bind(random_udp_port())?;
+        socket.bind(UDP_PORT)?;
         socket.send_to(data.as_ref(), (destiny_ip, destiny_port)).await?;
+
+        Ok(())
+    }
+    pub(super) async fn send_tcp(&self, data: impl AsRef<[u8]>) -> Result<(), NetworkError> {
+        tcp_socket!(socket, self.state.stack, 400);
+
+        let destiny_ip: Ipv4Addr = DESTINY_IP.parse().expect("invalid dest_ip in .env file");
+        let destiny_port: u16 = DESTINY_PORT.parse().expect("invalid dest_port in .env file");
+
+        let remote = SocketAddrV4::new(destiny_ip, destiny_port);
+
+        socket.accept(remote).await?;
+
+        socket.write(data.as_ref()).await?;
+        socket.flush().await?;
 
         Ok(())
     }
 }
 
-fn random_udp_port() -> u16 {
-    let rng = Rng::new();
-    49152 + (rng.random() as u16 % 16384)
-}
 
 #[embassy_executor::task]
 async fn net_task(mut runner: Runner<'static, Interface<'static>>) {
