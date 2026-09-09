@@ -1,4 +1,3 @@
-use core::net::Ipv4Addr;
 
 use embassy_executor::Spawner;
 use embedded_hal::i2c::I2c;

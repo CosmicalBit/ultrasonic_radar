@@ -8,7 +8,7 @@
 #![deny(clippy::large_stack_frames)]
 
 use embassy_executor::Spawner;
-use esp_hal::{main, time::Instant};
+use esp_hal::time::Instant;
 use esp_println::println;
 
 use crate::{

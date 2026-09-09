@@ -2,8 +2,8 @@ use core::net::{Ipv4Addr, SocketAddrV4};
 
 use embassy_executor::Spawner;
 use embassy_net::{
-    Config, DhcpConfig, Runner, StackResources, tcp,
-    tcp::{AcceptError, TcpSocket, client::TcpClient},
+    Config, DhcpConfig, Runner, StackResources,
+    tcp::{AcceptError, TcpSocket},
     udp::{BindError, PacketMetadata, SendError, UdpSocket},
 };
 use embassy_time::Timer;
@@ -11,7 +11,7 @@ use esp_hal::rng::Rng;
 use esp_radio::wifi::{Config as WifiConfig, Interface, Interfaces, WifiController, sta::StationConfig};
 use static_cell::StaticCell;
 
-use crate::esp_init::wifi::NetworkError::{TcpAcceptError, TcpError};
+use crate::esp_init::wifi::NetworkError::TcpError;
 
 const SSID: &str = env!("SSID", "set SSID in the project's .env file");
 const PASSWORD: &str = match option_env!("PASSWORD") {
