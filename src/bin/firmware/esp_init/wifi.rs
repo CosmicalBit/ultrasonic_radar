@@ -10,6 +10,7 @@ use embassy_time::Timer;
 use esp_hal::rng::Rng;
 use esp_radio::wifi::{Config as WifiConfig, Interface, Interfaces, WifiController, sta::StationConfig};
 use static_cell::StaticCell;
+
 use crate::esp_init::wifi::NetworkError::{TcpAcceptError, TcpError};
 
 const SSID: &str = env!("SSID", "set SSID in the project's .env file");
@@ -174,7 +175,6 @@ impl Wifi<Connected> {
         Ok(())
     }
 }
-
 
 #[embassy_executor::task]
 async fn net_task(mut runner: Runner<'static, Interface<'static>>) {

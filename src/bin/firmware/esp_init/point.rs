@@ -10,16 +10,26 @@ impl Point {
         Self(point)
     }
 }
+impl Point {
+    fn to_packet(self) -> [u8; 13] {
+        let x = self.0.0.to_be_bytes();
+        let y = self.0.1.to_be_bytes();
+        let z = self.0.2.to_be_bytes();
 
+        // 13 is the sum of x + y + z ammount of bytes plus header
+        let mut bytes = [0u8; 13];
+
+        bytes[0] = SendHeader::Point as u8;
+        bytes[1..5].copy_from_slice(&x);
+        bytes[5..9].copy_from_slice(&y);
+        bytes[9..13].copy_from_slice(&z);
+
+        bytes
+    }
+}
 impl NetSend for Point {
     async fn send_udp(self, esp: &Esp<I2c<'static, Blocking>>) -> Result<(), NetworkError> {
-        let (x, y, z) = self.0;
-
-        let mut packet = [0_u8; 13];
-        packet[0] = SendHeader::Point as u8;
-        packet[1..5].copy_from_slice(&x.to_be_bytes());
-        packet[5..9].copy_from_slice(&y.to_be_bytes());
-        packet[9..13].copy_from_slice(&z.to_be_bytes());
+        let packet = self.to_packet();
 
         esp.send_udp_internal(packet).await?;
 
